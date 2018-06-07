@@ -36,7 +36,7 @@ if not camera.isOpened():
 
 # list for average compute time of frame
 computeTimes = []
-
+count = 0
 # keep looping
 while True:
 	start = time.time()
@@ -48,7 +48,8 @@ while True:
 		print "End of video"
 		break
  
-	# resize the frame, blur it, and convert it to the HSV color space
+	count += 1
+	# blur it, and convert it to the HSV color space
 	frame = cv2.GaussianBlur(frame, (5, 5), 0)
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
  
@@ -62,8 +63,10 @@ while True:
 	# find contours in the mask and initialize the current
 	# (x, y) center of the ball
 	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-	center = None
  
+	if count == 2:
+		cv2.imwrite("colors.jpg", mask)
+		break
 	# only proceed if at least one contour was found
 	if len(cnts) > 0:
 		# find the largest contour in the mask, then use
@@ -71,17 +74,12 @@ while True:
 		# centroid
 		c = max(cnts, key=cv2.contourArea)
 		((x, y), radius) = cv2.minEnclosingCircle(c)
-		M = cv2.moments(c)
-		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
  
 		# only proceed if the radius meets a minimum size
 		if radius > 2:
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
-			cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
- 
-	# update the points queue
-	pts.appendleft(center)
+			cv2.circle(frame, (int(x), int(y)), int(radius), (0, 0, 255), 2)
 
 	# loop over the set of tracked points
 	for i in xrange(1, len(pts)):

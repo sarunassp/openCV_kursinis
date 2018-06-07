@@ -1,12 +1,13 @@
 import sys
 import cv2
 import numpy as np
+import time
 
 # Set up tracker.
 # Instead of MIL, you can also use
 
 tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
-tracker_type = tracker_types[3]
+tracker_type = tracker_types[2]
 
 if tracker_type == 'BOOSTING':
     tracker = cv2.TrackerBoosting_create()
@@ -46,9 +47,6 @@ bbox = (220, 215, 20, 20)
 # Uncomment the line below to select a different bounding box
 #bbox = cv2.selectROI(frame, False)
 
-# Initialize tracker with first frame and bounding box
-ok = tracker.init(frame, bbox)
-
 frameCount = 0
 colorCount = 0
 trackerCount = 0
@@ -67,6 +65,7 @@ if len(cnts) > 0:
     max_index = np.argmax(areas)
     cnt=cnts[max_index]
     bbox = cv2.boundingRect(cnt)
+    bbox = (bbox[0]-5, bbox[1]-5, bbox[2] + 10, bbox[3] + 10)
     c = max(cnts, key=cv2.contourArea)
     ((x, y), radius) = cv2.minEnclosingCircle(c)
     M = cv2.moments(c)
@@ -79,7 +78,9 @@ if len(cnts) > 0:
         # then update the list of tracked points
         cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
 
-ok, bbox = tracker.update(frame)
+
+# Initialize tracker with first frame and bounding box
+
 while True:
     frameCount += 1
     # Read a new frame
@@ -116,6 +117,11 @@ while True:
             max_index = np.argmax(areas)
             cnt=cnts[max_index]
             bbox = cv2.boundingRect(cnt)
+            bbox = (bbox[0]-5, bbox[1]-5, bbox[2] + 10, bbox[3] + 10)
+            tracker.init(frame, bbox)
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
             c = max(cnts, key=cv2.contourArea)
             ((x, y), radius) = cv2.minEnclosingCircle(c)
             M = cv2.moments(c)
@@ -126,7 +132,12 @@ while True:
                 colorCount += 1
                 # draw the circle and centroid on the frame,
                 # then update the list of tracked points
-                cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
+                #cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
+                rect = cv2.minAreaRect(c)
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+                cv2.drawContours(frame,[box],0,(0,0,255),2)
+
         else:
             cv2.putText(frame, "Tracking failure detected", (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
 
