@@ -7,7 +7,7 @@ import time
 # Instead of MIL, you can also use
 
 tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
-tracker_type = tracker_types[2]
+tracker_type = tracker_types[0]
 
 if tracker_type == 'BOOSTING':
     tracker = cv2.TrackerBoosting_create()
@@ -53,7 +53,6 @@ trackerCount = 0
 
 
 ok, frame = video.read()
-# Tracking failure
 frame = cv2.GaussianBlur(frame, (5, 5), 0)
 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 mask = cv2.inRange(hsv, colorLower, colorUpper)
@@ -65,11 +64,10 @@ if len(cnts) > 0:
     max_index = np.argmax(areas)
     cnt=cnts[max_index]
     bbox = cv2.boundingRect(cnt)
+    tracker.init(frame, bbox)
     bbox = (bbox[0]-5, bbox[1]-5, bbox[2] + 10, bbox[3] + 10)
     c = max(cnts, key=cv2.contourArea)
     ((x, y), radius) = cv2.minEnclosingCircle(c)
-    M = cv2.moments(c)
-    center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
     # only proceed if the radius meets a minimum size
     if radius > 2:
@@ -78,10 +76,14 @@ if len(cnts) > 0:
         # then update the list of tracked points
         cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
 
-
 # Initialize tracker with first frame and bounding box
-
+computeTimes = []
+count = 0
+countTracked = 0
 while True:
+    if count == 3050:
+        break
+    start = time.time()
     frameCount += 1
     # Read a new frame
     ok, frame = video.read()
@@ -98,13 +100,14 @@ while True:
     fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
 
     # Draw bounding box
-    if ok:
+    if ok :#and count % 20 != 0:
         # Tracking success
         p1 = (int(bbox[0]), int(bbox[1]))
         p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
         cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
         trackerCount += 1
-    else :
+        countTracked += 1
+    else:
         # Tracking failure
         frame = cv2.GaussianBlur(frame, (5, 5), 0)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -117,19 +120,28 @@ while True:
             max_index = np.argmax(areas)
             cnt=cnts[max_index]
             bbox = cv2.boundingRect(cnt)
+            if tracker_type == 'BOOSTING':
+                tracker = cv2.TrackerBoosting_create()
+            if tracker_type == 'MIL':
+                tracker = cv2.TrackerMIL_create()
+            if tracker_type == 'KCF':
+                tracker = cv2.TrackerKCF_create()
+            if tracker_type == 'TLD':
+                tracker = cv2.TrackerTLD_create()
+            if tracker_type == 'MEDIANFLOW':
+                tracker = cv2.TrackerMedianFlow_create()
+            if tracker_type == 'GOTURN':
+                tracker = cv2.TrackerGOTURN_create()
+            asd = tracker.init(frame, bbox)
             bbox = (bbox[0]-5, bbox[1]-5, bbox[2] + 10, bbox[3] + 10)
-            tracker.init(frame, bbox)
-            p1 = (int(bbox[0]), int(bbox[1]))
-            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
+            #cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
             c = max(cnts, key=cv2.contourArea)
             ((x, y), radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
     
             # only proceed if the radius meets a minimum size
             if radius > 2:
                 colorCount += 1
+                countTracked += 1
                 # draw the circle and centroid on the frame,
                 # then update the list of tracked points
                 #cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 1)
@@ -149,11 +161,19 @@ while True:
 
     # Display result
     cv2.imshow("Tracking", frame)
+    
+    end = time.time()
+    computeTimes.append(end-start)
 
+    count += 1
     # Exit if ESC pressed
     k = cv2.waitKey(1) & 0xff
     if k == 27 : break
 
-print (frameCount)
-print (colorCount)
-print (trackerCount)
+video.release()
+cv2.destroyAllWindows()
+print ("all frames " + str(frameCount))
+print ("tracked frames " + str(countTracked))
+print ("color frames " + str(colorCount))
+print ("tracker frames " + str(trackerCount))
+print (sum(computeTimes)/len(computeTimes))

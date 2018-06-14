@@ -36,7 +36,8 @@ if not camera.isOpened():
 
 # list for average compute time of frame
 computeTimes = []
-count = 0
+countAll = 0
+countTracked = 0
 # keep looping
 while True:
 	start = time.time()
@@ -47,11 +48,11 @@ while True:
 	if not grabbed:
 		print "End of video"
 		break
- 
-	count += 1
+
+	countAll += 1
 	# blur it, and convert it to the HSV color space
-	frame = cv2.GaussianBlur(frame, (5, 5), 0)
-	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+	blurred = cv2.GaussianBlur(frame, (5, 5), 0)
+	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
  
 	# construct a mask for the color, then perform
 	# a series of dilations and erosions to remove any small
@@ -64,9 +65,6 @@ while True:
 	# (x, y) center of the ball
 	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
  
-	if count == 2:
-		cv2.imwrite("colors.jpg", mask)
-		break
 	# only proceed if at least one contour was found
 	if len(cnts) > 0:
 		# find the largest contour in the mask, then use
@@ -79,8 +77,16 @@ while True:
 		if radius > 2:
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
-			cv2.circle(frame, (int(x), int(y)), int(radius), (0, 0, 255), 2)
-
+			bbox = cv2.boundingRect(c)
+			bbox = (bbox[0]-5, bbox[1]-5, bbox[2] + 5, bbox[3] + 5)
+			p1 = (int(bbox[0]), int(bbox[1]))
+			p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+			cv2.rectangle(frame, p1, p2, (0,255,0), 2, 1)
+			countTracked += 1
+			#cv2.circle(frame, (int(x), int(y)), int(radius), (0, 0, 255), 2)
+	# if count == 2:
+		# cv2.imwrite("finalTracked.jpg", frame)
+		# break
 	# loop over the set of tracked points
 	for i in xrange(1, len(pts)):
 		# if either of the tracked points are None, ignore
@@ -99,7 +105,7 @@ while True:
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
-        
+
 	# if the 'q' key is pressed, stop the loop
 	if key == ord("q"):
 		break
@@ -109,3 +115,5 @@ print (sum(computeTimes)/len(computeTimes))
 # cleanup the camera and close any open windows
 camera.release()
 cv2.destroyAllWindows()
+print ("all frames " + str(countAll))
+print ("tracked frames " + str(countTracked))
