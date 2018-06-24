@@ -22,13 +22,8 @@ colorUpper = (22, 230, 220)
 
 pts = deque(maxlen=args["buffer"])
  
-# if a video path was not supplied, grab the reference
-# to the webcam
-if not args.get("video", False):
-	camera = cv2.VideoCapture("video/60fps480p.mp4")
-# otherwise, grab a reference to the video file
-else:
-	camera = cv2.VideoCapture(args["video"])
+# init video
+camera = cv2.VideoCapture("video/60fps480p.mp4")
 	
 if not camera.isOpened():
 	print "Camera not opened"
@@ -54,9 +49,7 @@ while True:
 	blurred = cv2.GaussianBlur(frame, (5, 5), 0)
 	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
  
-	# construct a mask for the color, then perform
-	# a series of dilations and erosions to remove any small
-	# blobs left in the mask
+	# construct a mask for the color, do erosion and dilation
 	mask = cv2.inRange(hsv, colorLower, colorUpper)
 	mask = cv2.erode(mask, None, iterations=2)
 	mask = cv2.dilate(mask, None, iterations=2)
@@ -84,13 +77,10 @@ while True:
 			cv2.rectangle(frame, p1, p2, (0,255,0), 2, 1)
 			countTracked += 1
 			#cv2.circle(frame, (int(x), int(y)), int(radius), (0, 0, 255), 2)
-	# if count == 2:
-		# cv2.imwrite("finalTracked.jpg", frame)
-		# break
+
 	# loop over the set of tracked points
 	for i in xrange(1, len(pts)):
-		# if either of the tracked points are None, ignore
-		# them
+		# if either of the tracked points are None, ignore them
 		if pts[i - 1] is None or pts[i] is None:
 			continue
  
@@ -106,7 +96,6 @@ while True:
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
 
-	# if the 'q' key is pressed, stop the loop
 	if key == ord("q"):
 		break
 		
