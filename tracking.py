@@ -7,7 +7,7 @@ import time
 # Instead of MIL, you can also use
 
 tracker_types = ['BOOSTING', 'MIL','KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
-tracker_type = tracker_types[0]
+tracker_type = tracker_types[2]
 
 if tracker_type == 'BOOSTING':
     tracker = cv2.TrackerBoosting_create()
